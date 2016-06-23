@@ -47,14 +47,23 @@ public class InAuthController {
                 InAuthRequestProcessor.MOBILE_LOG);
 
         System.out.println(requestResponse);
+
         ObjectMapper mapper = new ObjectMapper();
         LogResponse logResponse = mapper.readValue(requestResponse, LogResponse.class);
 
+        String responseMessage;
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
-        String decodedStringReponse = decodeResponse(logResponse);
-        System.out.println(decodedStringReponse);
-        return new ResponseEntity<String>(decodedStringReponse, responseHeaders, HttpStatus.OK);
+        if (logResponse.deviceResponse == null) {
+            //no response object to send back to the device
+            //most likely a response to a log collection submission
+            responseMessage = "Device log collection submitted sucessfully! Smile your on camera\n";
+        } else {
+            responseMessage = decodeResponse(logResponse);
+        }
+
+        System.out.println(responseMessage);
+        return new ResponseEntity<String>(responseMessage, responseHeaders, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)

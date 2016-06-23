@@ -17,6 +17,7 @@ import java.io.InputStream;
 
 /**
  * Created by gavnunns on 6/7/16.
+ *
  */
 public class InAuthRequestProcessor {
     public static final String MOBILE_REGISTER = "mobile_request";
@@ -47,19 +48,14 @@ public class InAuthRequestProcessor {
     private String submitMobileLogRequest(InAuthPayload inAuthPayload) throws IOException {
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(MOBILE_API_SERVER_URL + MOBILE_LOG_ENDPOINT + MOBILE_API_KEY);
-
-        makeMobileRequestToInAuthAPI(inAuthPayload, httpPost);
-
-        return parseResponse(httpclient, httpPost);
+        buildMobileRequestToInAuthAPI(inAuthPayload, httpPost);
+        return sendMultipartRequestToInAuthAPI(httpclient, httpPost);
     }
 
-    private void makeMobileRequestToInAuthAPI(InAuthPayload inAuthPayload, HttpPost httpPost) throws JsonProcessingException {
+    private void buildMobileRequestToInAuthAPI(InAuthPayload inAuthPayload, HttpPost httpPost) throws JsonProcessingException {
         StringBody request = new StringBody(inAuthPayload.mobileRequestFormat(), ContentType.APPLICATION_JSON);
         HttpEntity reqEntity = MultipartEntityBuilder.create().addPart("message", request).build();
-
         httpPost.setEntity(reqEntity);
-
-        System.out.println("executing request " + httpPost.getRequestLine());
     }
 
     private String submitBrowserRequest(InAuthPayload inAuthPayload) throws IOException {
@@ -73,20 +69,19 @@ public class InAuthRequestProcessor {
 
         System.out.println("executing request " + httpPost.getRequestLine());
 
-        return parseResponse(httpclient, httpPost);
+        return sendMultipartRequestToInAuthAPI(httpclient, httpPost);
     }
 
     private String submitMobileRegisterRequest(InAuthPayload inAuthPayload) throws IOException {
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(MOBILE_API_SERVER_URL + MOBILE_REGISTER_ENDPOINT + MOBILE_API_KEY);
+        buildMobileRequestToInAuthAPI(inAuthPayload, httpPost);
 
-        makeMobileRequestToInAuthAPI(inAuthPayload, httpPost);
-
-        return parseResponse(httpclient, httpPost);
+        return sendMultipartRequestToInAuthAPI(httpclient, httpPost);
     }
 
-    private String parseResponse(CloseableHttpClient httpclient, HttpPost httpPost) throws IOException {
-        StringBuffer sb = new StringBuffer();
+    private String sendMultipartRequestToInAuthAPI(CloseableHttpClient httpclient, HttpPost httpPost) throws IOException {
+        StringBuilder sb = new StringBuilder();
         try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
             HttpEntity resEntity = response.getEntity();
             InputStream is = resEntity.getContent();
@@ -100,7 +95,5 @@ public class InAuthRequestProcessor {
         }
         return sb.toString();
     }
-
-
 }
 
