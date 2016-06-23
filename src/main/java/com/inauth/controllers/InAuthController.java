@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class InAuthController {
 
     private static final String template = "Hello, %s!";
+    private static final String PAYLOAD = "payload";
     private final AtomicLong counter = new AtomicLong();
 
     @Autowired
@@ -36,7 +37,6 @@ public class InAuthController {
         return new Greeting(counter.incrementAndGet(),
                 String.format(template, name));
     }
-
 
     @RequestMapping(value = "/log", method = RequestMethod.POST)
     public ResponseEntity<String> log(HttpServletRequest request) throws IOException {
@@ -57,7 +57,7 @@ public class InAuthController {
         if (logResponse.deviceResponse == null) {
             //no response object to send back to the device
             //most likely a response to a log collection submission
-            responseMessage = "Device log collection submitted sucessfully! Smile your on camera\n";
+            responseMessage = "Device log collection submitted successfully! Smile your on camera\n";
         } else {
             responseMessage = decodeResponse(logResponse);
         }
@@ -91,24 +91,22 @@ public class InAuthController {
     }
 
     private InAuthMobileRequestInfo getInAuthMobileRequestInfo(MultipartHttpServletRequest request) throws IOException {
-        MultipartFile multipartFile = request.getFile("payload");
+        MultipartFile multipartFile = request.getFile(PAYLOAD);
 
         String mobilePayload = new String(multipartFile.getBytes(), "UTF-8");
         System.out.println(mobilePayload);
 
+        System.out.println("local address :" + request.getLocalAddr());
+        String remoteAddr = getRemoteAddr();
         return new InAuthMobileRequestInfo(
                 new String(Base64.encodeBase64(multipartFile.getBytes()), "UTF-8"),
-                "1.1.1.1"
+                remoteAddr
         );
     }
 
     @RequestMapping(value = "/browser-request", method = RequestMethod.POST)
-    public ResponseEntity<String> browserRequest(@RequestParam("request") MultipartFile file,
-                                                 @RequestParam("remoteAddr") String remoteAddr) {
+    public ResponseEntity<String> browserRequest(@RequestParam("request") MultipartFile file) {
         InAuthRequestProcessor processor = new InAuthRequestProcessor();
-
-        if (remoteAddr.length() < 7)
-            return new ResponseEntity<>("Remote Address is not valid\n", HttpStatus.BAD_REQUEST);
 
         try {
             String browserPayload = null;
@@ -123,6 +121,8 @@ public class InAuthController {
             //create a unique transactionID - this should be mapped to your user login session somehow
             String transactionID = UUID.randomUUID().toString();
 
+            String remoteAddr = getRemoteAddr();
+
             //constructing a pojo with everything a good browserRequest will need!
             InAuthBrowserRequestInfo browserRequestInfo = new InAuthBrowserRequestInfo(getHeadersInfo(),
                     remoteAddr,
@@ -135,7 +135,7 @@ public class InAuthController {
             String requestResponse = processor.submitPayloadToInAuth(new InAuthPayload(browserRequestInfo),
                     InAuthRequestProcessor.BROWSER_REQUEST);
 
-            //Do something realy realy clever with the response, for now just print to sysout
+            //Do something realy clever with the response, for now just print to sysout
             System.out.println(requestResponse);
         } catch (IOException e) {
             e.printStackTrace();
@@ -143,7 +143,17 @@ public class InAuthController {
         return new ResponseEntity<>("You are a browser request submitting master!\n", HttpStatus.OK);
     }
 
+    private String getRemoteAddr() {
+        String remoteAddr = request.getRemoteAddr();
+        if (remoteAddr == null)
+            remoteAddr = "1.1.1.1";
+        System.out.println("remote address :" + remoteAddr);
+        return remoteAddr;
+    }
+
     //get request httpHeaders
+    //more the better nom nom nom nom
+    //black list ones that cause internal secuirty or privacy concerns
     private Map<String, String> getHeadersInfo() {
         Map<String, String> map = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
