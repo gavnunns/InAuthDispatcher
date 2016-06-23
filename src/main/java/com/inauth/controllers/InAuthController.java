@@ -40,16 +40,19 @@ public class InAuthController {
 
     @RequestMapping(value = "/log", method = RequestMethod.POST)
     public ResponseEntity<String> log(HttpServletRequest request) throws IOException {
+        System.out.println("<----Log submission Request Received---->");
         InAuthMobileRequestInfo mobileRequestInfo = getInAuthMobileRequestInfo((MultipartHttpServletRequest) request);
 
         InAuthRequestProcessor processor = new InAuthRequestProcessor();
         String requestResponse = processor.submitPayloadToInAuth(new InAuthPayload(mobileRequestInfo),
                 InAuthRequestProcessor.MOBILE_LOG);
 
-        System.out.println(requestResponse);
+//        System.out.println(requestResponse);
 
         ObjectMapper mapper = new ObjectMapper();
         LogResponse logResponse = mapper.readValue(requestResponse, LogResponse.class);
+
+        System.out.println(logResponse.deviceInfo);
 
         String responseMessage;
         HttpHeaders responseHeaders = new HttpHeaders();
@@ -59,15 +62,19 @@ public class InAuthController {
             //most likely a response to a log collection submission
             responseMessage = "Device log collection submitted successfully! Smile your on camera\n";
         } else {
+            //logResponse was populated
+            System.out.println("Device Response Received From Server");
+            System.out.println("Base64 Decoding Then Launching Back at supper high velocity");
             responseMessage = decodeResponse(logResponse);
         }
 
-        System.out.println(responseMessage);
+//        System.out.println(responseMessage);
         return new ResponseEntity<>(responseMessage, responseHeaders, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity<String> register(HttpServletRequest request) throws IOException {
+        System.out.println("<----Device Register Request Received---->");
         InAuthMobileRequestInfo mobileRequestInfo = getInAuthMobileRequestInfo((MultipartHttpServletRequest) request);
 
         InAuthRequestProcessor processor = new InAuthRequestProcessor();
@@ -81,7 +88,7 @@ public class InAuthController {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
         String decodedStringReponse = decodeResponse(registrationResponse);
-        System.out.println(decodedStringReponse);
+//        System.out.println(decodedStringReponse);
         return new ResponseEntity<>(decodedStringReponse, responseHeaders, HttpStatus.OK);
     }
 
@@ -92,10 +99,6 @@ public class InAuthController {
 
     private InAuthMobileRequestInfo getInAuthMobileRequestInfo(MultipartHttpServletRequest request) throws IOException {
         MultipartFile multipartFile = request.getFile(PAYLOAD);
-
-        String mobilePayload = new String(multipartFile.getBytes(), "UTF-8");
-        System.out.println(mobilePayload);
-
         System.out.println("local address :" + request.getLocalAddr());
         String remoteAddr = getRemoteAddr();
         return new InAuthMobileRequestInfo(
