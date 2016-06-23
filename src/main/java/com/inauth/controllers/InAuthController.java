@@ -63,7 +63,7 @@ public class InAuthController {
         }
 
         System.out.println(responseMessage);
-        return new ResponseEntity<String>(responseMessage, responseHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(responseMessage, responseHeaders, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
@@ -82,7 +82,7 @@ public class InAuthController {
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
         String decodedStringReponse = decodeResponse(registrationResponse);
         System.out.println(decodedStringReponse);
-        return new ResponseEntity<String>(decodedStringReponse, responseHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(decodedStringReponse, responseHeaders, HttpStatus.OK);
     }
 
     private String decodeResponse(InAuthResponse response) throws UnsupportedEncodingException {
@@ -91,8 +91,7 @@ public class InAuthController {
     }
 
     private InAuthMobileRequestInfo getInAuthMobileRequestInfo(MultipartHttpServletRequest request) throws IOException {
-        MultipartHttpServletRequest r = request;
-        MultipartFile multipartFile = r.getFile("payload");
+        MultipartFile multipartFile = request.getFile("payload");
 
         String mobilePayload = new String(multipartFile.getBytes(), "UTF-8");
         System.out.println(mobilePayload);
@@ -109,7 +108,7 @@ public class InAuthController {
         InAuthRequestProcessor processor = new InAuthRequestProcessor();
 
         if (remoteAddr.length() < 7)
-            return new ResponseEntity<String>("Remote Address is not valid\n", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Remote Address is not valid\n", HttpStatus.BAD_REQUEST);
 
         try {
             String browserPayload = null;
@@ -141,12 +140,12 @@ public class InAuthController {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return new ResponseEntity<String>("You are a browser request submitting master!\n", HttpStatus.OK);
+        return new ResponseEntity<>("You are a browser request submitting master!\n", HttpStatus.OK);
     }
 
     //get request httpHeaders
     private Map<String, String> getHeadersInfo() {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
         while (headerNames.hasMoreElements()) {
             String key = headerNames.nextElement();
