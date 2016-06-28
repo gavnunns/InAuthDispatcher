@@ -2,9 +2,15 @@ package com.inauth.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inauth.PoJos.*;
+import com.inauth.domain.InAuthRequestDomain;
+import com.inauth.repository.InAuthRequestRepository;
+import com.inauth.repository.RepositoryConfiguration;
 import com.inauth.workers.InAuthRequestProcessor;
 import org.apache.tomcat.util.codec.binary.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,11 +29,14 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
+@SpringApplicationConfiguration(classes = {RepositoryConfiguration.class})
 public class InAuthController {
-
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private static final String template = "Hello, %s!";
     private static final String PAYLOAD = "payload";
     private final AtomicLong counter = new AtomicLong();
+
+    private InAuthRequestRepository requestRepository;
 
     @Autowired
     private HttpServletRequest request;
@@ -40,19 +49,17 @@ public class InAuthController {
 
     @RequestMapping(value = "/log", method = RequestMethod.POST)
     public ResponseEntity<String> log(HttpServletRequest request) throws IOException {
-        System.out.println("<----Log submission Request Received---->");
+        logger.info("<----Log submission Request Received---->");
         InAuthMobileRequestInfo mobileRequestInfo = getInAuthMobileRequestInfo((MultipartHttpServletRequest) request);
 
         InAuthRequestProcessor processor = new InAuthRequestProcessor();
         String requestResponse = processor.submitPayloadToInAuth(new InAuthPayload(mobileRequestInfo),
                 InAuthRequestProcessor.MOBILE_LOG);
 
-//        System.out.println(requestResponse);
-
         ObjectMapper mapper = new ObjectMapper();
         LogResponse logResponse = mapper.readValue(requestResponse, LogResponse.class);
 
-        System.out.println(logResponse.deviceInfo);
+        logger.info(logResponse.deviceInfo.toString());
 
         String responseMessage;
         HttpHeaders responseHeaders = new HttpHeaders();
@@ -63,20 +70,20 @@ public class InAuthController {
             responseMessage = "Device log collection submitted successfully! Smile your on camera\n";
         } else {
             //logResponse was populated
-            System.out.println("Device Response Received From Server");
-            System.out.println("Base64 Decoding Then Launching Back at supper high velocity");
+            logger.info("Device Response Received From Server");
+            logger.info("Base64 Decoding Then Launching Back at supper high velocity");
             responseMessage = decodeResponse(logResponse);
         }
 
-//        System.out.println(responseMessage);
         return new ResponseEntity<>(responseMessage, responseHeaders, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity<String> register(HttpServletRequest request) throws IOException {
-        System.out.println("<----Device Register Request Received---->");
+        logger.info("<----Device Register Request Received---->");
         InAuthMobileRequestInfo mobileRequestInfo = getInAuthMobileRequestInfo((MultipartHttpServletRequest) request);
 
+        recordRequest(mobileRequestInfo);
         InAuthRequestProcessor processor = new InAuthRequestProcessor();
         String requestResponse = processor.submitPayloadToInAuth(new InAuthPayload(mobileRequestInfo),
                 InAuthRequestProcessor.MOBILE_REGISTER);
@@ -84,12 +91,27 @@ public class InAuthController {
         ObjectMapper mapper = new ObjectMapper();
         RegistrationResponse registrationResponse = mapper.readValue(requestResponse, RegistrationResponse.class);
 
-        System.out.println("And your response is :" + registrationResponse.deviceInfo);
+        logger.info("Device Info response from the InAuth API is :" + registrationResponse.deviceInfo);
+
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
         String decodedStringReponse = decodeResponse(registrationResponse);
-//        System.out.println(decodedStringReponse);
         return new ResponseEntity<>(decodedStringReponse, responseHeaders, HttpStatus.OK);
+    }
+
+    private void recordRequest(InAuthMobileRequestInfo mobileRequestInfo) {
+        try {
+            InAuthRequestDomain request = new InAuthRequestDomain();
+            // decoding the just encoded message for readability
+            // the persistance is just intended for testing and transparancy
+            byte[] decodedResponse = Base64.decodeBase64(mobileRequestInfo.message);
+            request.setMessage(new String(decodedResponse, "UTF-8"));
+            request.setRequestType(InAuthRequestProcessor.MOBILE_REGISTER);
+            requestRepository.save(request);
+
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
     private String decodeResponse(InAuthResponse response) throws UnsupportedEncodingException {
@@ -99,7 +121,7 @@ public class InAuthController {
 
     private InAuthMobileRequestInfo getInAuthMobileRequestInfo(MultipartHttpServletRequest request) throws IOException {
         MultipartFile multipartFile = request.getFile(PAYLOAD);
-        System.out.println("local address :" + request.getLocalAddr());
+        logger.info("local address :" + request.getLocalAddr());
         String remoteAddr = getRemoteAddr();
         return new InAuthMobileRequestInfo(
                 new String(Base64.encodeBase64(multipartFile.getBytes()), "UTF-8"),
@@ -118,7 +140,7 @@ public class InAuthController {
                 if (file.getSize() > 0)
                     browserPayload = new String(file.getBytes(), "UTF-8");
             } else {
-                System.out.println("NO FILE FOUND");
+                logger.info("NO FILE FOUND");
             }
 
             //create a unique transactionID - this should be mapped to your user login session somehow
@@ -139,7 +161,7 @@ public class InAuthController {
                     InAuthRequestProcessor.BROWSER_REQUEST);
 
             //Do something realy clever with the response, for now just print to sysout
-            System.out.println(requestResponse);
+            logger.info(requestResponse);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -150,7 +172,7 @@ public class InAuthController {
         String remoteAddr = request.getRemoteAddr();
         if (remoteAddr == null)
             remoteAddr = "1.1.1.1";
-        System.out.println("remote address :" + remoteAddr);
+        logger.info("remote address :" + remoteAddr);
         return remoteAddr;
     }
 

@@ -20,15 +20,11 @@ public class InAuthPayload {
 
     public String browserRequestFormat() throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
-        String out = mapper.writeValueAsString(browserRequestInfo);
-        System.out.println(out);
-        return out;
+        return mapper.writeValueAsString(browserRequestInfo);
     }
 
     public String mobileRequestFormat() throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
-        String out = mapper.writeValueAsString(mobilePayload);
-        System.out.println(out);
-        return out;
+        return mapper.writeValueAsString(mobilePayload);
     }
 }

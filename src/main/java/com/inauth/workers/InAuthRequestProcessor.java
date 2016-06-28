@@ -11,6 +11,8 @@ import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,6 +22,7 @@ import java.io.InputStream;
  *
  */
 public class InAuthRequestProcessor {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     public static final String MOBILE_REGISTER = "mobile_request";
     public static final String BROWSER_REQUEST = "browser_request";
 
@@ -67,7 +70,7 @@ public class InAuthRequestProcessor {
 
         httpPost.setEntity(reqEntity);
 
-        System.out.println("executing request " + httpPost.getRequestLine());
+        logger.info("executing request " + httpPost.getRequestLine());
 
         return sendMultipartRequestToInAuthAPI(httpclient, httpPost);
     }
