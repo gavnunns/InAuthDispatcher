@@ -43,12 +43,6 @@ public class InAuthController {
     @Autowired
     private HttpServletRequest request;
 
-    @RequestMapping("/greeting")
-    public Greeting greeting(@RequestParam(value = "name", defaultValue = "World") String name) {
-        return new Greeting(counter.incrementAndGet(),
-                String.format(template, name));
-    }
-
     @RequestMapping(value = "/log", method = RequestMethod.POST)
     public ResponseEntity<String> log(HttpServletRequest request) throws IOException {
         logger.info("<----Log submission Request Received---->");
