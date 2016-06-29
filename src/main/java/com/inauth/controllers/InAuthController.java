@@ -3,7 +3,9 @@ package com.inauth.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inauth.PoJos.*;
 import com.inauth.domain.InAuthRequestDomain;
+import com.inauth.domain.InAuthResponseDomain;
 import com.inauth.repository.InAuthRequestRepository;
+import com.inauth.repository.InAuthResponseRepository;
 import com.inauth.repository.RepositoryConfiguration;
 import com.inauth.workers.InAuthRequestProcessor;
 import org.apache.tomcat.util.codec.binary.Base64;
@@ -35,8 +37,8 @@ public class InAuthController {
     private static final String template = "Hello, %s!";
     private static final String PAYLOAD = "payload";
     private final AtomicLong counter = new AtomicLong();
-
     private InAuthRequestRepository requestRepository;
+    private InAuthResponseRepository responseRepository;
 
     @Autowired
     private HttpServletRequest request;
@@ -96,7 +98,17 @@ public class InAuthController {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
         String decodedStringReponse = decodeResponse(registrationResponse);
+
+        saveRegistrationResponse(registrationResponse);
         return new ResponseEntity<>(decodedStringReponse, responseHeaders, HttpStatus.OK);
+    }
+
+    private void saveRegistrationResponse(RegistrationResponse registrationResponse) {
+        InAuthResponseDomain response = new InAuthResponseDomain();
+        response.setMessage(registrationResponse.getDeviceResponseInBytes().toString());
+        response.setRequestType(InAuthRequestProcessor.MOBILE_REGISTER);
+        response.setPermanentId(registrationResponse.deviceInfo.permanentId);
+        responseRepository.save(response);
     }
 
     private void recordRequest(InAuthMobileRequestInfo mobileRequestInfo) {
@@ -160,7 +172,7 @@ public class InAuthController {
             String requestResponse = processor.submitPayloadToInAuth(new InAuthPayload(browserRequestInfo),
                     InAuthRequestProcessor.BROWSER_REQUEST);
 
-            //Do something realy clever with the response, for now just print to sysout
+            //Do something really clever with the response, for now just print to sysout
             logger.info(requestResponse);
         } catch (IOException e) {
             e.printStackTrace();
@@ -188,5 +200,15 @@ public class InAuthController {
             map.put(key, value);
         }
         return map;
+    }
+
+    @Autowired
+    public void setRequestRepository(InAuthRequestRepository requestRepository) {
+        this.requestRepository = requestRepository;
+    }
+
+    @Autowired
+    public void setResponseRepository(InAuthResponseRepository responseRepository) {
+        this.responseRepository = responseRepository;
     }
 }

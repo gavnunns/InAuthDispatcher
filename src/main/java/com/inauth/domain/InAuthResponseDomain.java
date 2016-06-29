@@ -3,11 +3,10 @@ package com.inauth.domain;
 import javax.persistence.*;
 
 /**
- * Created by gavnunns on 6/27/16.
- *
+ * Created by gavnunns on 6/28/16.
  */
 @Entity
-public class InAuthRequestDomain {
+public class InAuthResponseDomain {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
@@ -17,6 +16,7 @@ public class InAuthRequestDomain {
     @Lob
     @Column
     private String message;
+    private String permanentId;
     private String requestType;
 
 
@@ -50,5 +50,13 @@ public class InAuthRequestDomain {
 
     public String getRequestType() {
         return requestType;
+    }
+
+    public String getPermanentId() {
+        return permanentId;
+    }
+
+    public void setPermanentId(String permanentId) {
+        this.permanentId = permanentId;
     }
 }
